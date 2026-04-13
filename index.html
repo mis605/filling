@@ -1688,58 +1688,70 @@
         }
 
         function selectProj(el) {
-            document.querySelectorAll(".proj-chip").forEach(c => c.classList.remove("active"));
-            el.classList.add("active");
-            selectedProj = el.dataset.value || "";
+            const val = el.dataset.value || "";
+            if (val === "") {
+                selectedProj = [];
+                document.querySelectorAll(".proj-chip").forEach(c => c.classList.remove("active"));
+                el.classList.add("active");
+            } else {
+                const idx = selectedProj.indexOf(val);
+                if (idx > -1) {
+                    selectedProj.splice(idx, 1);
+                    el.classList.remove("active");
+                } else {
+                    selectedProj.push(val);
+                    el.classList.add("active");
+                }
+                const allBtn = document.querySelector(".proj-chip[data-value='']");
+                if (allBtn && selectedProj.length > 0) allBtn.classList.remove("active");
+                else if (allBtn && selectedProj.length === 0) allBtn.classList.add("active");
+            }
+
             const btn = document.getElementById("projBtnLabel");
             const txt = document.getElementById("projBtnText");
-            if (selectedProj) {
-                txt.textContent = selectedProj;
+            if (selectedProj.length > 0) {
+                txt.textContent = selectedProj.length + " Dipilih";
                 btn.classList.add("has-value");
             } else {
                 txt.innerHTML = '<i class="bi bi-briefcase me-1"></i>Semua Project';
                 btn.classList.remove("has-value");
             }
-            document.getElementById("projPanel").classList.remove("open");
         }
 
         function loadProjectOptions() {
-            google.script.run
-                .withSuccessHandler(list => {
-                    const container = document.getElementById("projChips");
-                    (list || []).forEach(p => {
-                        const chip = document.createElement("span");
-                        chip.className = "proj-chip";
-                        chip.dataset.value = p;
-                        chip.textContent = p;
-                        chip.onclick = () => selectProj(chip);
-                        container.appendChild(chip);
-                    });
-                })
-                .getSummaryProjectOptions();
+            callApi("getSummaryProjectOptions").then(list => {
+                const container = document.getElementById("projChips");
+                (list || []).forEach(p => {
+                    const chip = document.createElement("span");
+                    chip.className = "proj-chip";
+                    chip.dataset.value = p;
+                    chip.textContent = p;
+                    chip.onclick = () => selectProj(chip);
+                    container.appendChild(chip);
+                });
+            }).catch(err => console.error("Error loading projects", err));
         }
 
         function loadJenisOptions() {
-            google.script.run
-                .withSuccessHandler(list => {
-                    const container = document.getElementById("jenisChips");
-                    (list || []).forEach(j => {
-                        const chip = document.createElement("span");
-                        chip.className = "jenis-chip";
-                        chip.dataset.value = j;
-                        chip.textContent = j;
-                        chip.onclick = () => selectJenis(chip);
-                        container.appendChild(chip);
-                    });
-                })
-                .getSummaryFilterOptions();
+            callApi("getSummaryFilterOptions").then(list => {
+                const container = document.getElementById("jenisChips");
+                (list || []).forEach(j => {
+                    const chip = document.createElement("span");
+                    chip.className = "jenis-chip";
+                    chip.dataset.value = j;
+                    chip.textContent = j;
+                    chip.onclick = () => selectJenis(chip);
+                    container.appendChild(chip);
+                });
+            }).catch(err => console.error("Error loading filter options", err));
         }
 
         // ── Load Summary ──
         function loadSummary() {
             const start = document.getElementById("startMonth").value;
             const end = document.getElementById("endMonth").value;
-            const projStr = selectedProj.join(",");\n            currentFilters = { start, end, jenis: selectedJenis, project: projStr };
+            const projStr = selectedProj.join(",");
+            currentFilters = { start, end, jenis: selectedJenis, project: projStr };
 
             const parts = [];
             if (start || end) parts.push(`${start || "awal"} s/d ${end || "sekarang"}`);
@@ -1754,18 +1766,16 @@
             }
 
             toggleLoader(true);
-            google.script.run
-                .withSuccessHandler(res => {
+            callApi("getSummaryData", { startMonth: start, endMonth: end, jenis: selectedJenis, project: projStr })
+                .then(res => {
                     toggleLoader(false);
-                    if (res.error) { showToast(res.error, "error"); return; }
                     renderKPI(res.stat);
                     renderTable(res.rows);
                 })
-                .withFailureHandler(err => {
+                .catch(err => {
                     toggleLoader(false);
                     showToast("Gagal memuat: " + err.message, "error");
-                })
-                .getSummaryData(start || "", end || "", selectedJenis, selectedProj);
+                });
         }
 
         function resetFilter() {
@@ -1927,16 +1937,17 @@
             document.getElementById("ddOverlay").classList.add("open");
             document.body.style.overflow = "hidden";
 
-            google.script.run
-                .withSuccessHandler(res => {
-                    if (res.error) { showToast(res.error, "error"); closeDrillDown(); return; }
+            callApi("getBranchDetail", { branch: branch, startMonth: f.start || "", endMonth: f.end || "", jenis: f.jenis || "", project: f.project || "" })
+                .then(res => {
                     ddRawData = res.rows || [];
                     populateDDProjFilter(ddRawData);
                     renderDDStats(ddRawData);
                     renderDDTable(ddRawData);
                 })
-                .withFailureHandler(err => { showToast("Gagal: " + err.message, "error"); closeDrillDown(); })
-                .getBranchDetail(branch, f.start || "", f.end || "", f.jenis || "", f.project || "");
+                .catch(err => {
+                    showToast("Gagal: " + err.message, "error");
+                    closeDrillDown();
+                });
         }
 
         function closeDrillDown(e) {
