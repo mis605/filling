@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="id" data-bs-theme="light">
+
+<head>
+    <base target="_top">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dashboard PKWT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap"
+        rel="stylesheet" />
+    <style>
+  :root {
+    --bg-body: #f4f7fa;
+    --card-bg: #ffffff;
+    --text-main: #212529;
+    --text-muted: #6c757d;
+    --accent-color: #0d6efd;
+    --nav-bg: rgba(255,255,255,0.88);
+    --border-color: #dee2e6;
+    --input-bg: #ffffff;
+    --input-text: #212529;
+    --transition-speed: 0.3s;
+    --font-bdy: 0.82rem;
+  }
+  [data-bs-theme="dark"] {
+    --bg-body: #0f172a;
+    --card-bg: #1e293b;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent-color: #38bdf8;
+    --nav-bg: rgba(15,23,42,0.9);
+    --border-color: #334155;
+    --input-bg: #0f172a;
+    --input-text: #f1f5f9;
+  }
+  body {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    font-family: "Outfit", sans-serif;
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+  }
+
+  /* === NAVBAR === */
+  .navbar-custom {
+    backdrop-filter: blur(12px);
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky; top: 0; z-index: 1000;
+  }
+
+  /* === NAV PILLS === */
+  .nav-pill {
+    font-size: 0.8rem; font-weight: 700;
+    padding: 0.35rem 0.9rem; border-radius: 8px;
+    border: 1.5px solid transparent;
+    cursor: pointer; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 5px;
+    text-decoration: none;
+  }
+  .nav-pill.dash { border-color: var(--accent-color); color: var(--accent-color); }
+  .nav-pill.dash.active, .nav-pill.dash:hover { background: var(--accent-color); color: white; }
+  .nav-pill.arsip { border-color: #10b981; color: #10b981; }
+  .nav-pill.arsip.active, .nav-pill.arsip:hover { background: #10b981; color: white; }
+  .nav-pill.summary { border-color: #f59e0b; color: #f59e0b; }
+  .nav-pill.summary.active, .nav-pill.summary:hover { background: #f59e0b; color: white; }
+
+  /* === THEME SWITCH === */
+  .theme-switch-wrapper {
+    display: flex; align-items: center;
+    background: rgba(0,0,0,0.05);
+    padding: 4px 8px; border-radius: 50px; gap: 8px;
+  }
+  [data-bs-theme="dark"] .theme-switch-wrapper { background: rgba(255,255,255,0.1); }
+  .theme-switch { display: inline-block; height: 20px; position: relative; width: 40px; }
+  .theme-switch input { display: none !important; }
+  .slider {
+    background-color: #cbd5e1; bottom: 0; cursor: pointer; left: 0;
+    position: absolute; right: 0; top: 0; transition: 0.4s; border-radius: 34px;
+  }
+  .slider:before {
+    background-color: white; bottom: 3px; content: ""; height: 14px; left: 3px;
+    position: absolute; transition: 0.4s; width: 14px; border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  input:checked + .slider { background-color: var(--accent-color); }
+  input:checked + .slider:before { transform: translateX(20px); }
+
+  /* === LOADER === */
+  .loader {
+    display: none; position: fixed; top: 0; left: 0;
+    width: 100%; height: 4px;
+    background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+    z-index: 2000; overflow: hidden;
+  }
+  .loader::after {
+    content: ""; position: absolute; width: 40%; height: 100%;
+    background: var(--accent-color);
+    animation: loadingBar 1.5s infinite ease-in-out;
+  }
+  @keyframes loadingBar { from { left: -40%; } to { left: 100%; } }
+
+  /* === TOAST === */
+  .toast-container { position: fixed; top: 20px; right: 20px; z-index: 3000; }
+  .custom-toast {
+    min-width: 260px; background: var(--card-bg);
+    border-left: 5px solid var(--accent-color);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+    padding: 0.85rem 1rem; margin-bottom: 10px;
+    border-radius: 8px; display: flex; align-items: center; gap: 12px;
+    animation: slideIn 0.3s ease-out forwards;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .custom-toast.success { border-color: #10b981; }
+  .custom-toast.error   { border-color: #ef4444; }
+
+  /* === TABLE === */
+  .table-container {
+    background: var(--card-bg); border-radius: 12px;
+    border: 1px solid var(--border-color); overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+  }
+  .table > thead > tr > th {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 800; padding: 1.1rem 0.5rem;
+    border-bottom: none; vertical-align: middle; text-align: center;
+  }
+  .table > tbody > tr > td {
+    font-size: var(--font-bdy); padding: 0.9rem 0.5rem;
+    vertical-align: middle; border-bottom: 1px solid var(--border-color);
+    text-align: center;
+  }
+  .table > tbody > tr:hover { background-color: rgba(13,110,253,0.03); }
+
+  /* === BADGES === */
+  .status-badge {
+    font-size: 0.62rem; padding: 0.22rem 0.55rem;
+    border-radius: 6px; font-weight: 800; text-transform: uppercase;
+  }
+  .jenis-badge {
+    background-color: #e2e8f0; color: #475569;
+    font-size: 0.62rem; padding: 0.22rem 0.55rem;
+    border-radius: 6px; font-weight: 800; text-transform: uppercase;
+  }
+  [data-bs-theme="dark"] .jenis-badge { background-color: #334155; color: #cbd5e1; }
+
+  /* === DATE CHIPS (Arsip) === */
+  .date-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #f0fdf4; color: #065f46;
+    font-size: 0.68rem; padding: 0.2rem 0.5rem;
+    border-radius: 6px; font-weight: 700; border: 1px solid #a7f3d0;
+  }
+  [data-bs-theme="dark"] .date-chip { background: #134e4a; color: #6ee7b7; border-color: #1a6350; }
+  .date-chip-empty { color: var(--text-muted); font-size: 0.72rem; }
+  .upload-chip {
+    background: linear-gradient(135deg, #10b981, #059669); color: white;
+    font-size: 0.68rem; padding: 0.25rem 0.6rem; border-radius: 6px; font-weight: 800;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+
+  /* === FORM CONTROLS === */
+  .form-control, .form-select, .input-group-text {
+    background-color: var(--input-bg) !important;
+    color: var(--input-text) !important;
+    border-color: var(--border-color) !important;
+    border-radius: 8px;
+  }
+  /* Calendar icon: dark mode → putih agar kontras */
+  [data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+  [data-bs-theme="dark"] input[type="month"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(2);
+    opacity: 1;
+    cursor: pointer;
+  }
+  .flow-input { width: 128px; font-size: 0.78rem; padding: 0.3rem; border-radius: 6px; }
+
+  /* === PAGINATION === */
+  .pagination .page-link {
+    color: var(--text-main); background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    margin: 0 2px; border-radius: 8px !important;
+  }
+  .pagination .page-item.active .page-link {
+    background-color: var(--accent-color); border-color: var(--accent-color); color: #fff;
+  }
+
+  /* === UPLOAD SECTION === */
+  .upload-section {
+    background: var(--card-bg); border-radius: 12px;
+    padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;
+    border: 2px dashed var(--border-color);
+  }
+
+  /* === STAT CARD (Arsip) === */
+  .stat-card {
+    background: var(--card-bg); border: 1px solid #a7f3d0;
+    border-radius: 12px; padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: 1rem;
+    box-shadow: 0 4px 12px rgba(16,185,129,0.08);
+  }
+  [data-bs-theme="dark"] .stat-card { border-color: #1a4035; }
+  .stat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1.2rem; flex-shrink: 0;
+  }
+  .stat-num { font-size: 1.5rem; font-weight: 800; color: #10b981; line-height: 1; }
+  .stat-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* === EMPTY STATE === */
+  .empty-state { padding: 3.5rem 2rem; text-align: center; }
+  .empty-state i { font-size: 2.8rem; opacity: 0.35; margin-bottom: 1rem; display: block; }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 1200px) {
+    .table-responsive { border: 0; }
+    .table > thead { display: none; }
+    .table > tbody > tr {
+      display: block; margin-bottom: 1.25rem;
+      background: var(--card-bg); border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08); padding: 0.9rem;
+    }
+    .table > tbody > tr > td {
+      display: flex; justify-content: space-between; align-items: center;
+      text-align: right; border-bottom: 1px solid var(--border-color); padding: 0.55rem 0.4rem;
+    }
+    .table > tbody > tr > td::before {
+      content: attr(data-label); font-weight: 700; text-align: left;
+      font-size: 0.72rem; color: var(--text-muted); margin-right: 0.75rem; white-space: nowrap;
+    }
+    .flow-input { width: 55%; }
+  }
+</style>
+
+
+    <style>
+        :root {
+            --amber: #f59e0b;
+            --amber-dark: #d97706;
+            --amber-darker: #92400e;
+            --amber-light: #fef3c7;
+            --amber-pale: #fffbeb;
+            --kritis-bg: rgba(220, 38, 38, 0.07);
+            --kritis-border: #dc2626;
+            --warn-bg: rgba(245, 158, 11, 0.09);
+            --warn-border: #f59e0b;
+        }
+
+        [data-bs-theme="dark"] {
+            --amber-light: #292006;
+            --amber-pale: #1c1505;
+            --kritis-bg: rgba(220, 38, 38, 0.13);
+            --warn-bg: rgba(245, 158, 11, 0.12);
+        }
+
+        /* ── HERO ── */
+        .summary-hero {
+            background: linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-hero::before {
+            content: "";
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 180px;
+            height: 180px;
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 50%;
+        }
+
+        .hero-title {
+            color: white;
+            font-size: 1.15rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .hero-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 0.15rem;
+        }
+
+        .hero-icon {
+            font-size: 2.2rem;
+            color: rgba(255, 255, 255, 0.25);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── FILTER CARD ── */
+        .filter-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.85rem 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .filter-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+        }
+
+        .filter-divider {
+            width: 1px;
+            height: 44px;
+            background: var(--border-color);
+            align-self: flex-end;
+        }
+
+        /* ── CUSTOM JENIS DROPDOWN ── */
+        .jenis-dropdown {
+            position: relative;
+        }
+
+        .jenis-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.35rem 0.75rem;
+            border: 1.5px solid var(--amber);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--amber-dark);
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+            min-width: 140px;
+            justify-content: space-between;
+        }
+
+        .jenis-btn:hover {
+            background: var(--amber-light);
+        }
+
+        .jenis-btn.has-value {
+            background: var(--amber);
+            color: white;
+        }
+
+        [data-bs-theme="dark"] .jenis-btn.has-value {
+            color: #1a1000;
+        }
+
+        .jenis-btn.has-value:hover {
+            opacity: 0.9;
+        }
+
+        .jenis-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            z-index: 200;
+            min-width: 260px;
+            max-width: 360px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .jenis-panel.open {
+            display: block;
+        }
+
+        .jenis-search {
+            width: 100%;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.78rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text-main);
+            margin-bottom: 0.6rem;
+        }
+
+        .jenis-panel-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .jenis-chip {
+            cursor: pointer;
+            padding: 0.18rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-muted);
+            transition: all 0.12s;
+            user-select: none;
+        }
+
+        .jenis-chip:hover {
+            border-color: var(--amber);
+            color: var(--amber-dark);
+        }
+
+        .jenis-chip.active {
+            background: var(--amber);
+            border-color: var(--amber);
+            color: white;
+        }
+
+        [data-bs-theme="dark"] .jenis-chip.active {
+            color: #1a1000;
+        }
+
+        /* ── KPI CARDS ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width:640px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .kpi-card {
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+            transition: transform 0.2s;
+            overflow: hidden;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .kpi-card.ongoing {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+        }
+
+        .kpi-card.kembali {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border: 1px solid #10b981;
+        }
+
+        .kpi-card.persen {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border: 1px solid #3b82f6;
+        }
+
+        [data-bs-theme="dark"] .kpi-card.ongoing {
+            background: linear-gradient(135deg, #292006, #3d2e08);
+            border-color: #d97706;
+        }
+
+        [data-bs-theme="dark"] .kpi-card.kembali {
+            background: linear-gradient(135deg, #0a2e1e, #0f3d28);
+            border-color: #10b981;
+        }
+
+        [data-bs-theme="dark"] .kpi-card.persen {
+            background: linear-gradient(135deg, #0c1f40, #0f2850);
+            border-color: #3b82f6;
+        }
+
+        .kpi-icon-wrap {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .kpi-card.ongoing .kpi-icon-wrap {
+            background: rgba(245, 158, 11, 0.2);
+            color: #d97706;
+        }
+
+        .kpi-card.kembali .kpi-icon-wrap {
+            background: rgba(16, 185, 129, 0.2);
+            color: #059669;
+        }
+
+        .kpi-card.persen .kpi-icon-wrap {
+            background: rgba(59, 130, 246, 0.2);
+            color: #2563eb;
+        }
+
+        .kpi-num {
+            font-size: 1.8rem;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+
+        .kpi-card.ongoing .kpi-num {
+            color: #92400e;
+        }
+
+        .kpi-card.kembali .kpi-num {
+            color: #065f46;
+        }
+
+        .kpi-card.persen .kpi-num {
+            color: #1e40af;
+        }
+
+        [data-bs-theme="dark"] .kpi-card.ongoing .kpi-num {
+            color: #fbbf24;
+        }
+
+        [data-bs-theme="dark"] .kpi-card.kembali .kpi-num {
+            color: #34d399;
+        }
+
+        [data-bs-theme="dark"] .kpi-card.persen .kpi-num {
+            color: #60a5fa;
+        }
+
+        .kpi-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
+            margin-bottom: 0.15rem;
+        }
+
+        /* ── TABLE CARD ── */
+        .table-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .table-card-header {
+            background: linear-gradient(135deg, #92400e, #d97706);
+            padding: 0.7rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .table-card-header h6 {
+            color: white;
+            margin: 0;
+            font-weight: 800;
+            font-size: 0.88rem;
+            letter-spacing: 0.5px;
+        }
+
+        .sum-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .sum-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #92400e;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.65rem 0.55rem;
+            text-align: center;
+            vertical-align: middle;
+            border-bottom: 2px solid #d97706;
+            white-space: nowrap;
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .sum-table thead th.subgroup {
+            background: #b45309;
+            font-size: 0.7rem;
+            border-left: 2px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .sum-table thead th:first-child {
+            text-align: left;
+            padding-left: 1rem;
+        }
+
+        .sum-table tbody tr {
+            transition: background 0.15s;
+        }
+
+        .sum-table tbody tr:nth-child(even) td {
+            background: rgba(245, 158, 11, 0.03);
+        }
+
+        .sum-table tbody tr:hover td {
+            background: rgba(245, 158, 11, 0.1) !important;
+        }
+
+        /* Kritis & warning row highlight */
+        .sum-table tbody tr.row-kritis td {
+            background: var(--kritis-bg) !important;
+        }
+
+        .sum-table tbody tr.row-kritis:hover td {
+            background: rgba(220, 38, 38, 0.14) !important;
+        }
+
+        .sum-table tbody tr.row-warn td {
+            background: var(--warn-bg) !important;
+        }
+
+        .sum-table tbody tr.row-warn:hover td {
+            background: rgba(245, 158, 11, 0.16) !important;
+        }
+
+        /* Clickable row cursor */
+        .sum-table tbody tr.clickable {
+            cursor: pointer;
+        }
+
+        .sum-table tbody tr.clickable:hover td {
+            box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.3);
+        }
+
+        .sum-table tbody td {
+            font-size: 0.78rem;
+            padding: 0.55rem 0.5rem;
+            text-align: center;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .sum-table tbody td:first-child {
+            text-align: left;
+            padding-left: 1rem;
+        }
+
+        /* Branch pill */
+        .branch-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 800;
+            font-size: 0.82rem;
+            color: var(--text-main);
+        }
+
+        .branch-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: var(--amber);
+        }
+
+        .branch-dot.kritis {
+            background: #dc2626;
+        }
+
+        .branch-dot.warn {
+            background: #f59e0b;
+        }
+
+        .branch-dot.ok {
+            background: #10b981;
+        }
+
+        /* Kritis badges on branch */
+        .kritis-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.6rem;
+            font-weight: 800;
+            padding: 0.1rem 0.45rem;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        .kritis-badge.kritis {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .kritis-badge.warn {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        [data-bs-theme="dark"] .kritis-badge.kritis {
+            background: rgba(220, 38, 38, 0.2);
+        }
+
+        [data-bs-theme="dark"] .kritis-badge.warn {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        /* Flow cells */
+        .flow-cell-has {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+            font-weight: 800;
+            border-radius: 6px;
+            padding: 0.2rem 0.45rem;
+            display: inline-block;
+            font-size: 0.75rem;
+            min-width: 34px;
+        }
+
+        [data-bs-theme="dark"] .flow-cell-has {
+            background: linear-gradient(135deg, #0a2e1e, #134e3a);
+            color: #34d399;
+        }
+
+        .flow-cell-empty {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+
+        .belum-num {
+            font-weight: 800;
+            color: #dc2626;
+            font-size: 0.88rem;
+        }
+
+        .sudah-num {
+            font-weight: 800;
+            color: #16a34a;
+            font-size: 0.88rem;
+        }
+
+        [data-bs-theme="dark"] .belum-num {
+            color: #f87171;
+        }
+
+        [data-bs-theme="dark"] .sudah-num {
+            color: #4ade80;
+        }
+
+        /* Progress bar */
+        .pct-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .pct-bar-track {
+            width: 60px;
+            height: 5px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .pct-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #f59e0b, #10b981);
+            transition: width 0.6s ease;
+        }
+
+        .pct-bar-fill.fill-kritis {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+        }
+
+        .pct-bar-fill.fill-warn {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+
+        .pct-text {
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: var(--amber-dark);
+        }
+
+        .pct-text.pct-kritis {
+            color: #dc2626;
+        }
+
+        .pct-text.pct-warn {
+            color: #d97706;
+        }
+
+        [data-bs-theme="dark"] .pct-text {
+            color: #fbbf24;
+        }
+
+        /* Footer */
+        .sum-table tfoot td {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.06));
+            font-weight: 800;
+            font-size: 0.78rem;
+            padding: 0.65rem 0.5rem;
+            border-top: 2px solid var(--amber);
+            text-align: center;
+            color: var(--text-main);
+        }
+
+        .sum-table tfoot td:first-child {
+            text-align: left;
+            padding-left: 1rem;
+            color: var(--amber-dark);
+            font-size: 0.82rem;
+        }
+
+        [data-bs-theme="dark"] .sum-table tfoot td:first-child {
+            color: #fbbf24;
+        }
+
+        .year-badge {
+            background: var(--amber-light);
+            color: var(--amber-dark);
+            font-size: 0.62rem;
+            font-weight: 800;
+            padding: 0.12rem 0.4rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        [data-bs-theme="dark"] .year-badge {
+            background: #3d2e08;
+            color: #fbbf24;
+        }
+
+        /* Drill-down info hint */
+        .drill-hint {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-left: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .sum-table tbody tr:hover .drill-hint {
+            opacity: 1;
+        }
+
+        /* Buttons */
+        .btn-amber {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            padding: 0.4rem 1.1rem;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-amber:hover {
+            opacity: 0.9;
+            color: white;
+        }
+
+        .btn-outline-amber {
+            border: 1.5px solid var(--amber);
+            color: var(--amber-dark);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.4rem 0.8rem;
+            background: transparent;
+            transition: all 0.2s;
+        }
+
+        .btn-outline-amber:hover {
+            background: var(--amber);
+            color: white;
+        }
+
+        [data-bs-theme="dark"] .btn-outline-amber {
+            color: var(--amber);
+        }
+
+        .table-scroll {
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            padding: 3.5rem 2rem;
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 2.8rem;
+            color: var(--amber);
+            opacity: 0.3;
+            display: block;
+            margin-bottom: 0.75rem;
+        }
+
+        /* ── LEGEND ── */
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ── HARI KERJA BADGE ── */
+        .hk-cell {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.73rem;
+            font-weight: 800;
+            padding: 0.18rem 0.55rem;
+            border-radius: 20px;
+        }
+
+        .hk-cell.hk-ok {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .hk-cell.hk-warn {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .hk-cell.hk-kritis {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        [data-bs-theme="dark"] .hk-cell.hk-ok {
+            background: #0a2e1e;
+            color: #34d399;
+        }
+
+        [data-bs-theme="dark"] .hk-cell.hk-warn {
+            background: #292006;
+            color: #fbbf24;
+        }
+
+        [data-bs-theme="dark"] .hk-cell.hk-kritis {
+            background: #2d0e0e;
+            color: #f87171;
+        }
+
+        /* ── DRILL-DOWN MODAL ── */
+        .dd-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1050;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .dd-modal-overlay.open {
+            display: flex;
+            animation: fadeInOverlay 0.2s ease;
+        }
+
+        @keyframes fadeInOverlay {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        .dd-modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 940px;
+            max-height: calc(100vh - 2rem);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+            animation: scaleIn 0.22s ease;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.96);
+                opacity: 0
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1
+            }
+        }
+
+        .dd-header {
+            background: linear-gradient(135deg, #92400e, #d97706);
+            padding: 1rem 1.25rem;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .dd-header h5 {
+            color: white;
+            margin: 0;
+            font-weight: 900;
+            font-size: 1rem;
+        }
+
+        .dd-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .dd-close:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .dd-sub {
+            padding: 0.6rem 1.25rem 0;
+            flex-shrink: 0;
+        }
+
+        .dd-stats {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .dd-stat {
+            padding: 0.3rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .dd-stat.total {
+            background: var(--amber-light);
+            color: var(--amber-darker);
+            border: 1px solid var(--amber);
+        }
+
+        .dd-stat.done {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .dd-stat.ongoing {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #dc2626;
+        }
+
+        [data-bs-theme="dark"] .dd-stat.total {
+            background: #292006;
+            color: #fbbf24;
+        }
+
+        [data-bs-theme="dark"] .dd-stat.done {
+            background: #0a2e1e;
+            color: #34d399;
+        }
+
+        [data-bs-theme="dark"] .dd-stat.ongoing {
+            background: #2d0e0e;
+            color: #f87171;
+        }
+
+        .dd-body {
+            overflow-y: auto;
+            padding: 0.75rem 1.25rem 1.25rem;
+        }
+
+        .dd-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.75rem;
+        }
+
+        .dd-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: var(--card-bg);
+            padding: 0.5rem 0.5rem;
+            border-bottom: 2px solid var(--amber);
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--amber-dark);
+            white-space: nowrap;
+        }
+
+        .dd-table thead th:first-child {
+            text-align: left;
+        }
+
+        .dd-table tbody td {
+            padding: 0.55rem 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .dd-table tbody td:first-child {
+            text-align: left;
+        }
+
+        .dd-table tbody tr:hover td {
+            background: rgba(245, 158, 11, 0.06);
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        .status-dot.done {
+            background: #10b981;
+        }
+
+        .status-dot.ongoing {
+            background: #dc2626;
+        }
+
+        .dd-date-ok {
+            color: #16a34a;
+            font-weight: 700;
+            font-size: 0.72rem;
+        }
+
+        .dd-date-null {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+        }
+
+        .dd-search {
+            width: 100%;
+            padding: 0.35rem 0.65rem;
+            font-size: 0.78rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text-main);
+            margin-bottom: 0.6rem;
+        }
+
+        /* ── PROJECT FILTER DROPDOWN (reuse jenis style) ── */
+        .proj-dropdown {
+            position: relative;
+        }
+
+        .proj-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.35rem 0.75rem;
+            border: 1.5px solid #6366f1;
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: #4f46e5;
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+            min-width: 150px;
+            justify-content: space-between;
+        }
+
+        .proj-btn:hover {
+            background: #eef2ff;
+        }
+
+        [data-bs-theme="dark"] .proj-btn {
+            color: #818cf8;
+        }
+
+        [data-bs-theme="dark"] .proj-btn:hover {
+            background: #1e1b4b;
+        }
+
+        .proj-btn.has-value {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+
+        .proj-btn.has-value:hover {
+            opacity: 0.9;
+        }
+
+        [data-bs-theme="dark"] .proj-btn.has-value {
+            color: #e0e7ff;
+        }
+
+        .proj-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            z-index: 200;
+            min-width: 240px;
+            max-width: 360px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .proj-panel.open {
+            display: block;
+        }
+
+        .proj-search {
+            width: 100%;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.78rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text-main);
+            margin-bottom: 0.6rem;
+        }
+
+        .proj-panel-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .proj-chip {
+            cursor: pointer;
+            padding: 0.18rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-muted);
+            transition: all 0.12s;
+            user-select: none;
+        }
+
+        .proj-chip:hover {
+            border-color: #6366f1;
+            color: #4f46e5;
+        }
+
+        .proj-chip.active {
+            background: #6366f1;
+            border-color: #6366f1;
+            color: white;
+        }
+
+        /* Filter project di dalam dd-modal */
+        .dd-proj-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.5rem 1.25rem 0;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .dd-proj-select {
+            flex: 1;
+            min-width: 160px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            border: 1.5px solid #6366f1;
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        [data-bs-theme="dark"] .dd-proj-select {
+            border-color: #818cf8;
+            color: #c7d2fe;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loader" class="loader"></div>
+    <div id="toastContainer" class="toast-container"></div>
+
+    <nav class="navbar-custom py-3 mb-4">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h5 class="fw-bold mb-0" style="font-family:'Outfit',sans-serif; color: var(--accent-color)">
+        <i class="bi bi-bar-chart-fill me-1" style="color:#f59e0b"></i>Summary PKWT
+      </h5>
+      <span class="badge bg-success" style="font-size:0.6rem">ONLINE</span>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <a href="#" class="nav-pill summary active">
+        <i class="bi bi-bar-chart-fill"></i> Summary
+      </a>
+      <div class="theme-switch-wrapper shadow-sm ms-1">
+        <i class="bi bi-moon-stars-fill text-muted" style="font-size:0.8rem"></i>
+        <label class="theme-switch">
+          <input type="checkbox" id="themeToggle" onchange="toggleTheme()" />
+          <span class="slider"></span>
+        </label>
+        <i class="bi bi-sun-fill text-warning" style="font-size:0.8rem"></i>
+      </div>
+    </div>
+  </div>
+</nav>
+<script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbx7c42kFgg1qR8yAU9IcjqMo9CNvmuj67WsJ1VDBYx9dh0hZzC5QwzwEULesvHQtO8bmQ/exec"; // GANTI DENGAN URL WEB APP BARU
+
+        async function callApi(action, params = {}) {
+            const url = new URL(API_URL);
+            url.searchParams.append("action", action);
+            for (const key in params) {
+                if (params[key]) url.searchParams.append(key, params[key]);
+            }
+            const response = await fetch(url.toString(), { redirect: "follow" });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            return data;
+        }
+  function toggleTheme() {
+    const isDark = !document.getElementById("themeToggle").checked;
+    document.documentElement.setAttribute("data-bs-theme", isDark ? "dark" : "light");
+    localStorage.setItem("pkwt_theme", isDark ? "dark" : "light");
+  }
+  window.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("pkwt_theme") || "light";
+    document.documentElement.setAttribute("data-bs-theme", saved);
+    const toggle = document.getElementById("themeToggle");
+    if (toggle) toggle.checked = saved === "light";
+  });
+</script>
+
+    <div class="container-fluid px-4 mb-5">
+
+        <!-- Hero -->
+        <div class="summary-hero">
+            <div style="position:relative;z-index:1">
+                <div class="hero-title"><i class="bi bi-bar-chart-fill me-2"></i>Dashboard Portal PKWT</div>
+                <div class="hero-subtitle">Rekap Status Pengembalian Dokumen per Branch</div>
+            </div>
+            <i class="bi bi-file-earmark-bar-graph-fill hero-icon"></i>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="filter-card">
+            <div class="d-flex flex-wrap align-items-end gap-3">
+
+                <!-- Month -->
+                <div>
+                    <div class="filter-label"><i class="bi bi-calendar-range me-1"></i>Filter Bulan</div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div>
+                            <div class="small text-muted mb-1" style="font-size:0.64rem">Start</div>
+                            <input type="month" id="startMonth" class="form-control"
+                                style="width:150px;padding:0.35rem 0.6rem" />
+                        </div>
+                        <i class="bi bi-arrow-right text-muted" style="margin-top:16px"></i>
+                        <div>
+                            <div class="small text-muted mb-1" style="font-size:0.64rem">End</div>
+                            <input type="month" id="endMonth" class="form-control"
+                                style="width:150px;padding:0.35rem 0.6rem" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-divider"></div>
+
+                <!-- Jenis Dokumen Dropdown -->
+                <div>
+                    <div class="filter-label"><i class="bi bi-file-earmark-text me-1"></i>Jenis Dokumen</div>
+                    <div class="jenis-dropdown" id="jenisDropdown">
+                        <button class="jenis-btn" id="jenisBtnLabel" onclick="toggleJenisPanel(event)">
+                            <span id="jenisBtnText"><i class="bi bi-grid-3x3-gap me-1"></i>Semua Jenis</span>
+                            <i class="bi bi-chevron-down" style="font-size:0.7rem"></i>
+                        </button>
+                        <div class="jenis-panel" id="jenisPanel">
+                            <input type="text" class="jenis-search" placeholder="Cari jenis dokumen..."
+                                oninput="filterJenisChips(this.value)" />
+                            <div class="jenis-panel-chips" id="jenisChips">
+                                <span class="jenis-chip active" data-value="" onclick="selectJenis(this)">Semua</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-divider"></div>
+
+                <!-- Project / Client Dropdown -->
+                <div>
+                    <div class="filter-label"><i class="bi bi-building me-1"></i>Project / Client</div>
+                    <div class="proj-dropdown" id="projDropdown">
+                        <button class="proj-btn" id="projBtnLabel" onclick="toggleProjPanel(event)">
+                            <span id="projBtnText"><i class="bi bi-briefcase me-1"></i>Semua Project</span>
+                            <i class="bi bi-chevron-down" style="font-size:0.7rem"></i>
+                        </button>
+                        <div class="proj-panel" id="projPanel">
+                            <input type="text" class="proj-search" placeholder="Cari project / client..."
+                                oninput="filterProjChips(this.value)" />
+                            <div class="proj-panel-chips" id="projChips">
+                                <span class="proj-chip active" data-value="" onclick="selectProj(this)">Semua</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex gap-2 align-self-end">
+                    <button class="btn-amber" onclick="loadSummary()">
+                        <i class="bi bi-funnel-fill me-1"></i>Tampilkan
+                    </button>
+                    <button class="btn-outline-amber" onclick="resetFilter()">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                    </button>
+                </div>
+
+                <!-- Filter badge -->
+                <div id="filterBadgeRow" class="align-self-end d-none">
+                    <span
+                        style="font-size:0.68rem;background:var(--amber-light);color:var(--amber-dark);padding:0.22rem 0.65rem;border-radius:6px;font-weight:700;border:1px solid var(--amber)">
+                        <i class="bi bi-funnel-fill me-1"></i><span id="filterInfoText"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card ongoing">
+                <div class="kpi-icon-wrap"><i class="bi bi-hourglass-split"></i></div>
+                <div>
+                    <div class="kpi-label">Dokbal On Going</div>
+                    <div class="kpi-num" id="kpiOngoing">—</div>
+                    <div style="font-size:0.68rem;opacity:0.6;margin-top:2px">Belum upload HRIS</div>
+                </div>
+            </div>
+            <div class="kpi-card kembali">
+                <div class="kpi-icon-wrap"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <div class="kpi-label">Dokbal Kembali</div>
+                    <div class="kpi-num" id="kpiKembali">—</div>
+                    <div style="font-size:0.68rem;opacity:0.6;margin-top:2px">Sudah upload HRIS</div>
+                </div>
+            </div>
+            <div class="kpi-card persen">
+                <div class="kpi-icon-wrap"><i class="bi bi-pie-chart-fill"></i></div>
+                <div>
+                    <div class="kpi-label">Presentase Selesai</div>
+                    <div class="kpi-num" id="kpiPersen">—</div>
+                    <div style="font-size:0.68rem;opacity:0.6;margin-top:2px">Upload / Total</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="table-card">
+            <div class="table-card-header">
+                <h6><i class="bi bi-table me-2"></i>Rekap per Branch
+                    <span style="font-size:0.65rem;opacity:0.7;font-weight:500;margin-left:6px">— klik baris untuk
+                        detail</span>
+                </h6>
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Legend -->
+                    <div class="legend" style="color:rgba(255,255,255,0.85)">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#10b981"></div>≥80%
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#f59e0b"></div>50–79%
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:#dc2626"></div>&lt;50%
+                        </div>
+                    </div>
+                    <span id="rowCount" class="badge" style="background:rgba(255,255,255,0.2);font-size:0.68rem">0
+                        Branch</span>
+                </div>
+            </div>
+            <div class="table-scroll">
+                <table class="sum-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width:175px;text-align:left;padding-left:1rem">Branch</th>
+                            <th style="min-width:85px">Belum Kembali</th>
+                            <th style="min-width:85px">Sudah Kembali</th>
+                            <th class="subgroup" style="min-width:75px"
+                                title="Service Level Agreement: hari kerja tunggu dokumen kembali">SLA</th>
+                            <th class="subgroup" style="min-width:80px">Scan / Rev.</th>
+                            <th class="subgroup" style="min-width:72px">Filling</th>
+                            <th class="subgroup" style="min-width:72px">Upload HRIS</th>
+                            <th style="min-width:65px">Total</th>
+                            <th style="min-width:90px">Selesai (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryTableBody">
+                        <tr>
+                            <td colspan="9">
+                                <div class="empty-state">
+                                    <i class="bi bi-bar-chart"></i>
+                                    <p class="fw-bold text-muted mb-1">Data belum dimuat</p>
+                                    <p class="small text-muted mb-0">Klik <strong>Tampilkan</strong> untuk memuat data.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="summaryFooter"></tfoot>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+    <!-- ══ DRILL-DOWN MODAL ══ -->
+    <div class="dd-modal-overlay" id="ddOverlay" onclick="closeDrillDown(event)">
+        <div class="dd-modal" onclick="event.stopPropagation()">
+            <div class="dd-header">
+                <div style="flex:1;min-width:0">
+                    <h5 id="ddTitle"><i class="bi bi-building me-2"></i>Detail Branch</h5>
+                    <div id="ddSubtitle" style="color:rgba(255,255,255,0.7);font-size:0.75rem;margin-top:2px"></div>
+                </div>
+                <button class="dd-close" onclick="closeDrillDown()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <!-- Filter Project di dalam popup -->
+            <div class="dd-proj-filter">
+                <i class="bi bi-briefcase text-muted" style="font-size:0.85rem"></i>
+                <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);white-space:nowrap">Filter
+                    Project:</span>
+                <select class="dd-proj-select" id="ddProjFilter" onchange="onDDProjChange()">
+                    <option value="">Semua Project</option>
+                </select>
+                <input type="text" class="dd-search" id="ddSearch" placeholder="Cari nama / NRK / ID..."
+                    oninput="filterDDTable(this.value)" style="flex:1;min-width:160px;margin:0" />
+            </div>
+            <div class="dd-sub" style="padding-top:0.4rem">
+                <div class="dd-stats" id="ddStats"></div>
+            </div>
+            <div class="dd-body" id="ddBody">
+                <div class="empty-state" style="padding:2rem">
+                    <i class="bi bi-hourglass-split"></i>
+                    <p class="text-muted mb-0">Memuat data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedJenis = "";
+        let selectedProj = [];
+        let currentFilters = { start: "", end: "", jenis: "", project: "" };
+        let ddRawData = [];
+        let ddCurrentBranch = "";
+
+        // ── Init ──
+        window.onload = () => {
+            loadJenisOptions();
+            loadProjectOptions();
+            loadSummary();
+            // Tutup panel jenis & project jika klik di luar
+            document.addEventListener("click", e => {
+                if (!document.getElementById("jenisDropdown").contains(e.target))
+                    document.getElementById("jenisPanel").classList.remove("open");
+                if (!document.getElementById("projDropdown").contains(e.target))
+                    document.getElementById("projPanel").classList.remove("open");
+            });
+        };
+
+        // ── Jenis Dropdown ──
+        function toggleJenisPanel(e) {
+            e.stopPropagation();
+            document.getElementById("jenisPanel").classList.toggle("open");
+        }
+
+        function filterJenisChips(q) {
+            document.querySelectorAll("#jenisChips .jenis-chip").forEach(c => {
+                const val = (c.dataset.value || "semua").toLowerCase();
+                c.style.display = val.includes(q.toLowerCase()) || q === "" ? "" : "none";
+            });
+        }
+
+        function selectJenis(el) {
+            document.querySelectorAll(".jenis-chip").forEach(c => c.classList.remove("active"));
+            el.classList.add("active");
+            selectedJenis = el.dataset.value || "";
+            // Update button label
+            const btn = document.getElementById("jenisBtnLabel");
+            const txt = document.getElementById("jenisBtnText");
+            if (selectedJenis) {
+                txt.innerHTML = selectedJenis;
+                btn.classList.add("has-value");
+            } else {
+                txt.innerHTML = '<i class="bi bi-grid-3x3-gap me-1"></i>Semua Jenis';
+                btn.classList.remove("has-value");
+            }
+            document.getElementById("jenisPanel").classList.remove("open");
+        }
+
+        // ── Project Dropdown ──
+        function toggleProjPanel(e) {
+            e.stopPropagation();
+            document.getElementById("projPanel").classList.toggle("open");
+        }
+
+        function filterProjChips(q) {
+            document.querySelectorAll("#projChips .proj-chip").forEach(c => {
+                const val = (c.dataset.value || "semua").toLowerCase();
+                c.style.display = val.includes(q.toLowerCase()) || q === "" ? "" : "none";
+            });
+        }
+
+        function selectProj(el) {
+            document.querySelectorAll(".proj-chip").forEach(c => c.classList.remove("active"));
+            el.classList.add("active");
+            selectedProj = el.dataset.value || "";
+            const btn = document.getElementById("projBtnLabel");
+            const txt = document.getElementById("projBtnText");
+            if (selectedProj) {
+                txt.textContent = selectedProj;
+                btn.classList.add("has-value");
+            } else {
+                txt.innerHTML = '<i class="bi bi-briefcase me-1"></i>Semua Project';
+                btn.classList.remove("has-value");
+            }
+            document.getElementById("projPanel").classList.remove("open");
+        }
+
+        function loadProjectOptions() {
+            google.script.run
+                .withSuccessHandler(list => {
+                    const container = document.getElementById("projChips");
+                    (list || []).forEach(p => {
+                        const chip = document.createElement("span");
+                        chip.className = "proj-chip";
+                        chip.dataset.value = p;
+                        chip.textContent = p;
+                        chip.onclick = () => selectProj(chip);
+                        container.appendChild(chip);
+                    });
+                })
+                .getSummaryProjectOptions();
+        }
+
+        function loadJenisOptions() {
+            google.script.run
+                .withSuccessHandler(list => {
+                    const container = document.getElementById("jenisChips");
+                    (list || []).forEach(j => {
+                        const chip = document.createElement("span");
+                        chip.className = "jenis-chip";
+                        chip.dataset.value = j;
+                        chip.textContent = j;
+                        chip.onclick = () => selectJenis(chip);
+                        container.appendChild(chip);
+                    });
+                })
+                .getSummaryFilterOptions();
+        }
+
+        // ── Load Summary ──
+        function loadSummary() {
+            const start = document.getElementById("startMonth").value;
+            const end = document.getElementById("endMonth").value;
+            const projStr = selectedProj.join(",");\n            currentFilters = { start, end, jenis: selectedJenis, project: projStr };
+
+            const parts = [];
+            if (start || end) parts.push(`${start || "awal"} s/d ${end || "sekarang"}`);
+            if (selectedJenis) parts.push(`Jenis: ${selectedJenis}`);
+            if (selectedProj.length > 0) parts.push(`Project: ${selectedProj.length} Dipilih`);
+            const badge = document.getElementById("filterBadgeRow");
+            if (parts.length) {
+                document.getElementById("filterInfoText").textContent = parts.join(" | ");
+                badge.classList.remove("d-none");
+            } else {
+                badge.classList.add("d-none");
+            }
+
+            toggleLoader(true);
+            google.script.run
+                .withSuccessHandler(res => {
+                    toggleLoader(false);
+                    if (res.error) { showToast(res.error, "error"); return; }
+                    renderKPI(res.stat);
+                    renderTable(res.rows);
+                })
+                .withFailureHandler(err => {
+                    toggleLoader(false);
+                    showToast("Gagal memuat: " + err.message, "error");
+                })
+                .getSummaryData(start || "", end || "", selectedJenis, selectedProj);
+        }
+
+        function resetFilter() {
+            document.getElementById("startMonth").value = "";
+            document.getElementById("endMonth").value = "";
+            selectedJenis = "";
+            selectedProj = [];
+            document.querySelectorAll(".jenis-chip").forEach(c => c.classList.remove("active"));
+            const allJenis = document.querySelector(".jenis-chip[data-value='']");
+            if (allJenis) allJenis.classList.add("active");
+            document.getElementById("jenisBtnText").innerHTML = '<i class="bi bi-grid-3x3-gap me-1"></i>Semua Jenis';
+            document.getElementById("jenisBtnLabel").classList.remove("has-value");
+            document.querySelectorAll(".proj-chip").forEach(c => c.classList.remove("active"));
+            const allProj = document.querySelector(".proj-chip[data-value='']");
+            if (allProj) allProj.classList.add("active");
+            document.getElementById("projBtnText").innerHTML = '<i class="bi bi-briefcase me-1"></i>Semua Project';
+            document.getElementById("projBtnLabel").classList.remove("has-value");
+            document.getElementById("filterBadgeRow").classList.add("d-none");
+            loadSummary();
+        }
+
+        // ── KPI ──
+        function renderKPI(stat) {
+            document.getElementById("kpiOngoing").textContent = (stat.on_going || 0).toLocaleString("id-ID");
+            document.getElementById("kpiKembali").textContent = (stat.kembali || 0).toLocaleString("id-ID");
+            document.getElementById("kpiPersen").textContent = (stat.persen || "0.00") + "%";
+        }
+
+        // ── Table ──
+        function renderTable(rows) {
+            const tbody = document.getElementById("summaryTableBody");
+            const tfoot = document.getElementById("summaryFooter");
+
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
+          <i class="bi bi-bar-chart"></i>
+          <p class="fw-bold text-muted mb-1">Tidak ada data.</p>
+          <p class="small text-muted mb-0">Coba ubah filter.</p>
+        </div></td></tr>`;
+                tfoot.innerHTML = "";
+                document.getElementById("rowCount").textContent = "0 Branch";
+                return;
+            }
+
+            document.getElementById("rowCount").textContent = rows.length + " Branch";
+
+            // Grand total
+            const tot = rows.reduce((a, b) => ({
+                belum: a.belum + b.belum_kembali,
+                sudah: a.sudah + b.sudah_kembali,
+                scan: a.scan + b.scan,
+                filling: a.filling + b.filling,
+                upload: a.upload + b.upload_hris,
+                total: a.total + b.total_dokumen,
+                // Weighted average hari kerja (semua dokumen, bukan hanya yang sudah kembali)
+                hkSum: a.hkSum + (b.avg_hari_kerja !== null ? b.avg_hari_kerja * b.total_dokumen : 0),
+                hkDok: a.hkDok + (b.avg_hari_kerja !== null ? b.total_dokumen : 0),
+            }), { belum: 0, sudah: 0, scan: 0, filling: 0, upload: 0, total: 0, hkSum: 0, hkDok: 0 });
+            const totAvgHK = tot.hkDok > 0 ? (tot.hkSum / tot.hkDok).toFixed(1) : null;
+
+            const flow = v => v > 0
+                ? `<span class="flow-cell-has"><i class="bi bi-check-lg me-1"></i>${v.toLocaleString("id-ID")}</span>`
+                : `<span class="flow-cell-empty">—</span>`;
+
+            const pctBar = (num, den) => {
+                const p = den > 0 ? Math.min((num / den) * 100, 100) : 0;
+                const lbl = den > 0 ? p.toFixed(1) + "%" : "—";
+                const cls = p < 50 ? "fill-kritis" : p < 80 ? "fill-warn" : "";
+                const tcls = p < 50 && den > 0 ? "pct-kritis" : p < 80 && den > 0 ? "pct-warn" : "";
+                return `<div class="pct-wrap">
+          <div class="pct-text ${tcls}">${lbl}</div>
+          <div class="pct-bar-track"><div class="pct-bar-fill ${cls}" style="width:${p}%"></div></div>
+        </div>`;
+            };
+
+            const rowClass = (b) => {
+                if (!b.total_dokumen) return "clickable";
+                const p = (b.upload_hris / b.total_dokumen) * 100;
+                if (p < 50) return "clickable row-kritis";
+                if (p < 80) return "clickable row-warn";
+                return "clickable";
+            };
+
+            const dotClass = (b) => {
+                if (!b.total_dokumen) return "";
+                const p = (b.upload_hris / b.total_dokumen) * 100;
+                if (p < 50) return "kritis";
+                if (p < 80) return "warn";
+                return "ok";
+            };
+
+            const kritisTag = (b) => {
+                if (!b.total_dokumen) return "";
+                const p = (b.upload_hris / b.total_dokumen) * 100;
+                if (p < 50) return `<span class="kritis-badge kritis"><i class="bi bi-exclamation-triangle-fill me-1"></i>Kritis</span>`;
+                if (p < 80) return `<span class="kritis-badge warn"><i class="bi bi-exclamation-circle-fill me-1"></i>Perhatian</span>`;
+                return "";
+            };
+
+            tbody.innerHTML = rows.map(b => {
+                const hkVal = b.avg_hari_kerja;
+                const hkCell = hkVal === null
+                    ? `<span class="flow-cell-empty">—</span>`
+                    : `<span class="hk-cell ${hkVal <= 7 ? 'hk-ok' : hkVal <= 14 ? 'hk-warn' : 'hk-kritis'}"><i class="bi bi-clock me-1"></i>${hkVal} hr</span>`;
+                return `
+        <tr class="${rowClass(b)}" onclick="openDrillDown('${b.branch.replace(/'/g, "\\'")}')">
+          <td>
+            <span class="branch-pill">
+              <span class="branch-dot ${dotClass(b)}"></span>
+              ${b.branch}${kritisTag(b)}
+            </span>
+            <span class="drill-hint"><i class="bi bi-zoom-in"></i> klik detail</span>
+          </td>
+          <td><span class="belum-num">${b.belum_kembali > 0 ? b.belum_kembali.toLocaleString("id-ID") : "—"}</span></td>
+          <td><span class="sudah-num">${b.sudah_kembali > 0 ? b.sudah_kembali.toLocaleString("id-ID") : "—"}</span></td>
+          <td style="border-left:2px solid var(--border-color)">${hkCell}</td>
+          <td>${flow(b.scan)}</td>
+          <td>${flow(b.filling)}</td>
+          <td>${flow(b.upload_hris)}</td>
+          <td><strong>${b.total_dokumen > 0 ? b.total_dokumen.toLocaleString("id-ID") : "—"}</strong></td>
+          <td>${pctBar(b.upload_hris, b.total_dokumen)}</td>
+        </tr>`;
+            }).join("");
+
+            const totHKCell = totAvgHK !== null
+                ? `<span class="hk-cell ${parseFloat(totAvgHK) <= 7 ? 'hk-ok' : parseFloat(totAvgHK) <= 14 ? 'hk-warn' : 'hk-kritis'}"><i class="bi bi-clock me-1"></i>${totAvgHK} hr</span>`
+                : `<span style="color:var(--text-muted)">—</span>`;
+
+            tfoot.innerHTML = `
+        <tr>
+          <td>GRAND TOTAL</td>
+          <td><span class="belum-num">${tot.belum.toLocaleString("id-ID")}</span></td>
+          <td><span class="sudah-num">${tot.sudah.toLocaleString("id-ID")}</span></td>
+          <td style="border-left:2px solid var(--border-color)">${totHKCell}</td>
+          <td>${tot.scan.toLocaleString("id-ID")}</td>
+          <td>${tot.filling.toLocaleString("id-ID")}</td>
+          <td>${tot.upload.toLocaleString("id-ID")}</td>
+          <td>${tot.total.toLocaleString("id-ID")}</td>
+          <td>${pctBar(tot.upload, tot.total)}</td>
+        </tr>`;
+        }
+
+        // ══ DRILL-DOWN ══
+        function openDrillDown(branch) {
+            ddCurrentBranch = branch;
+            document.getElementById("ddTitle").innerHTML = `<i class="bi bi-building me-2"></i>${branch}`;
+            const f = currentFilters;
+            const parts = [];
+            if (f.start || f.end) parts.push(`${f.start || "awal"} s/d ${f.end || "sekarang"}`);
+            if (f.jenis) parts.push(`Jenis: ${f.jenis}`);
+            if (f.project) parts.push(`Project: ${f.project.split(",").length} Dipilih`);
+            document.getElementById("ddSubtitle").textContent = parts.join(" · ") || "Semua data";
+            document.getElementById("ddStats").innerHTML = "";
+            document.getElementById("ddBody").innerHTML = `<div class="empty-state" style="padding:2rem"><i class="bi bi-hourglass-split"></i><p class="text-muted mb-0">Memuat data...</p></div>`;
+            document.getElementById("ddSearch").value = "";
+            // Reset & populate dd project filter
+            const ddSel = document.getElementById("ddProjFilter");
+            ddSel.value = "";
+            document.getElementById("ddOverlay").classList.add("open");
+            document.body.style.overflow = "hidden";
+
+            google.script.run
+                .withSuccessHandler(res => {
+                    if (res.error) { showToast(res.error, "error"); closeDrillDown(); return; }
+                    ddRawData = res.rows || [];
+                    populateDDProjFilter(ddRawData);
+                    renderDDStats(ddRawData);
+                    renderDDTable(ddRawData);
+                })
+                .withFailureHandler(err => { showToast("Gagal: " + err.message, "error"); closeDrillDown(); })
+                .getBranchDetail(branch, f.start || "", f.end || "", f.jenis || "", f.project || "");
+        }
+
+        function closeDrillDown(e) {
+            if (e && e.target !== document.getElementById("ddOverlay")) return;
+            document.getElementById("ddOverlay").classList.remove("open");
+            document.body.style.overflow = "";
+        }
+
+        // Isi dropdown project di dalam popup berdasarkan data
+        function populateDDProjFilter(rows) {
+            const sel = document.getElementById("ddProjFilter");
+            const projects = [...new Set((rows || []).map(r => r.client).filter(Boolean))].sort();
+            sel.innerHTML = '<option value="">Semua Project</option>';
+            projects.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p; opt.textContent = p;
+                sel.appendChild(opt);
+            });
+        }
+
+        // Event handler saat filter project di popup berubah
+        function onDDProjChange() {
+            const proj = document.getElementById("ddProjFilter").value;
+            const q = document.getElementById("ddSearch").value;
+            let filtered = ddRawData;
+            if (proj) filtered = filtered.filter(r => (r.client || "") === proj);
+            if (q) filtered = filtered.filter(r =>
+                (r.nama_karyawan || "").toLowerCase().includes(q.toLowerCase()) ||
+                (r.nrk || "").toLowerCase().includes(q.toLowerCase()) ||
+                (r.id_pkwt || "").toLowerCase().includes(q.toLowerCase())
+            );
+            renderDDTable(filtered);
+            renderDDStats(filtered);
+        }
+
+        function renderDDStats(rows) {
+            const done = rows.filter(r => r.tanggal_upload).length;
+            const ongoing = rows.length - done;
+            document.getElementById("ddStats").innerHTML = `
+        <span class="dd-stat total"><i class="bi bi-files me-1"></i>${rows.length} Dokumen</span>
+        <span class="dd-stat done"><i class="bi bi-check2-circle me-1"></i>${done} Selesai</span>
+        <span class="dd-stat ongoing"><i class="bi bi-hourglass-split me-1"></i>${ongoing} On Going</span>`;
+        }
+
+        function renderDDTable(rows) {
+            const body = document.getElementById("ddBody");
+            if (!rows || rows.length === 0) {
+                body.innerHTML = `<div class="empty-state" style="padding:2rem"><i class="bi bi-inbox"></i><p class="text-muted mb-0">Tidak ada data.</p></div>`;
+                return;
+            }
+            const d = v => v ? `<span class="dd-date-ok">${v}</span>` : `<span class="dd-date-null">—</span>`;
+            body.innerHTML = `
+        <table class="dd-table">
+          <thead>
+            <tr>
+              <th style="min-width:160px;text-align:left">Nama Karyawan</th>
+              <th style="min-width:80px">NRK</th>
+              <th style="min-width:70px">Jenis</th>
+              <th style="min-width:95px">Tgl Kirim</th>
+              <th style="min-width:95px">Tgl Kembali</th>
+              <th style="min-width:95px">Scan</th>
+              <th style="min-width:95px">Filling</th>
+              <th style="min-width:95px">Upload HRIS</th>
+              <th style="min-width:65px" title="Hari kerja tunggu: kirim ke kembali (atau hari ini jika belum)">SLA</th>
+              <th style="min-width:70px">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => {
+                const slaVal = r.sla_hari_kerja;
+                const slaBadge = slaVal === null
+                    ? `<span style="color:var(--text-muted)">—</span>`
+                    : `<span class="hk-cell ${slaVal <= 7 ? 'hk-ok' : slaVal <= 14 ? 'hk-warn' : 'hk-kritis'}">${slaVal} hr</span>`;
+                return `<tr>
+              <td><span class="fw-bold">${r.nama_karyawan}</span><br><span style="font-size:0.65rem;color:var(--text-muted)">${r.client}</span></td>
+              <td>${r.nrk}</td>
+              <td><span class="year-badge">${r.jenis_surat}</span></td>
+              <td>${d(r.tanggal_kirim)}</td>
+              <td>${d(r.tanggal_kembali)}</td>
+              <td>${d(r.tanggal_scan)}</td>
+              <td>${d(r.tanggal_filling)}</td>
+              <td>${d(r.tanggal_upload)}</td>
+              <td>${slaBadge}</td>
+              <td>
+                <span class="status-dot ${r.tanggal_upload ? 'done' : 'ongoing'}"></span>
+                <span style="font-size:0.7rem;font-weight:700">${r.tanggal_upload ? 'Selesai' : 'On Going'}</span>
+              </td>
+            </tr>`;
+            }).join("")}
+          </tbody>
+        </table>`;
+        }
+
+        function filterDDTable(q) {
+            const proj = document.getElementById("ddProjFilter").value;
+            let filtered = ddRawData;
+            if (proj) filtered = filtered.filter(r => (r.client || "") === proj);
+            if (q) {
+                const ql = q.toLowerCase();
+                filtered = filtered.filter(r =>
+                    (r.nama_karyawan || "").toLowerCase().includes(ql) ||
+                    (r.nrk || "").toLowerCase().includes(ql) ||
+                    (r.id_pkwt || "").toLowerCase().includes(ql)
+                );
+            }
+            renderDDTable(filtered);
+            renderDDStats(filtered);
+        }
+
+        // ── Utilities ──
+        function showToast(message, type = "info") {
+            const c = document.getElementById("toastContainer");
+            const t = document.createElement("div");
+            t.className = `custom-toast ${type}`;
+            const icon = type === "success" ? "check-circle" : type === "error" ? "exclamation-triangle" : "info-circle";
+            t.innerHTML = `<i class="bi bi-${icon}"></i><div class="small fw-bold">${message}</div>`;
+            c.appendChild(t);
+            setTimeout(() => { t.style.opacity = "0"; t.style.transform = "translateY(-20px)"; setTimeout(() => t.remove(), 300); }, 3500);
+        }
+
+        function toggleLoader(show) {
+            document.getElementById("loader").style.display = show ? "block" : "none";
+        }
+    </script>
+</body>
+
+</html>
