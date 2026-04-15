@@ -235,55 +235,6 @@
             overflow: hidden;
         }
 
-        /* ── EXPORT BUTTON ── */
-        .btn-export-excel {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 0.45rem 1.1rem;
-            font-size: 0.82rem;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
-            transition: all 0.2s ease;
-            text-decoration: none;
-            position: relative;
-            z-index: 1;
-        }
-
-        .btn-export-excel:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(34, 197, 94, 0.5);
-            color: white;
-        }
-
-        .btn-export-excel:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .btn-export-excel:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .export-spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255,255,255,0.4);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            display: none;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
         .fill-hero::before {
             content: "";
             position: absolute;
@@ -539,6 +490,40 @@
             color: white;
         }
 
+        /* ── EXPORT BUTTON ── */
+        .btn-export {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+            white-space: nowrap;
+        }
+
+        .btn-export:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.45);
+        }
+
+        .btn-export:active {
+            transform: translateY(0);
+        }
+
+        .btn-export:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 1200px) {
             .table-responsive {
@@ -621,6 +606,9 @@
                 <span id="userBadge" class="user-badge d-none"></span>
                 <button id="btnLogout" class="btn-logout d-none" onclick="logout()"><i
                         class="bi bi-box-arrow-right me-1"></i>Logout</button>
+                <button id="btnExport" class="btn-export d-none" onclick="exportToExcel()">
+                    <i class="bi bi-file-earmark-excel-fill"></i> Export Excel
+                </button>
                 <div class="theme-switch-wrapper shadow-sm ms-1">
                     <i class="bi bi-moon-stars-fill text-muted" style="font-size:0.8rem"></i>
                     <label class="theme-switch">
@@ -641,14 +629,7 @@
                 <div class="hero-title"><i class="bi bi-folder2-open me-2"></i>Filling Management</div>
                 <div class="hero-subtitle">Input &amp; Update Flow Dokumen Balik PKWT</div>
             </div>
-            <div style="position:relative;z-index:1;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-                <button id="btnExportExcel" class="btn-export-excel" onclick="exportToExcel()" title="Export semua data ke Excel">
-                    <span class="export-spinner" id="exportSpinner"></span>
-                    <i class="bi bi-file-earmark-excel-fill" id="exportIcon"></i>
-                    <span id="exportLabel">Export Excel</span>
-                </button>
-                <i class="bi bi-file-earmark-check-fill hero-icon" style="margin:0"></i>
-            </div>
+            <i class="bi bi-file-earmark-check-fill hero-icon"></i>
         </div>
 
         <!-- Upload CSV -->
@@ -741,6 +722,7 @@
                 document.getElementById("userBadge").textContent = payload.email || payload.name;
                 document.getElementById("userBadge").classList.remove("d-none");
                 document.getElementById("btnLogout").classList.remove("d-none");
+                document.getElementById("btnExport").classList.remove("d-none");
             } catch (_) { }
             // Sembunyikan auth overlay & muat data
             document.getElementById("authOverlay").style.display = "none";
@@ -752,6 +734,7 @@
             currentIdToken = null;
             document.getElementById("userBadge").classList.add("d-none");
             document.getElementById("btnLogout").classList.add("d-none");
+            document.getElementById("btnExport").classList.add("d-none");
             document.getElementById("authOverlay").style.display = "flex";
             // Revoke session Google (opsional)
             if (typeof google !== "undefined") google.accounts.id.disableAutoSelect();
@@ -907,6 +890,104 @@
             }
         }
 
+        // ── EXPORT EXCEL ─────────────────────────────────────────────────────────
+
+        /**
+         * Export semua data yang sudah memiliki tanggal_kembali ke file Excel.
+         * Mengambil seluruh data dari API (tanpa paginasi) lalu filter & export.
+         */
+        async function exportToExcel() {
+            const btn = document.getElementById("btnExport");
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Mengambil data...`;
+            toggleLoader(true);
+            try {
+                // Ambil semua data sekaligus dengan limit besar (tidak ada filter search)
+                const res = await apiPost({ action: "getPkwtData", offset: 0, search: "", limit: 99999 });
+                toggleLoader(false);
+                if (res.error) {
+                    showToast(res.error, "error");
+                    return;
+                }
+
+                // Filter hanya yang sudah ada tanggal_kembali
+                const allData = res.data || [];
+                const filtered = allData.filter(d => d.tanggal_kembali && d.tanggal_kembali.trim() !== "");
+
+                if (filtered.length === 0) {
+                    showToast("Tidak ada data dengan Tanggal Kembali yang diisi.", "error");
+                    return;
+                }
+
+                // Tentukan status flow tiap baris
+                const getFlowStatus = d => {
+                    if (d.tanggal_upload) return "UPLOADED";
+                    if (d.tanggal_filling) return "FILLING";
+                    if (d.tanggal_scan) return "SCAN";
+                    if (d.tanggal_kembali) return "KEMBALI";
+                    return "BLM KEMBALI";
+                };
+
+                // Susun array untuk worksheet
+                const rows = filtered.map((d, i) => ({
+                    "No": i + 1,
+                    "ID PKWT": d.id_pkwt || "",
+                    "Nama Karyawan": d.nama_karyawan || "",
+                    "NRK": d.nrk || "",
+                    "Client / Project": d.client || "",
+                    "Jenis Surat": d.jenis_surat || "",
+                    "Status PKWT": d.status || "",
+                    "Status Dokumen": getFlowStatus(d),
+                    "Tgl Kembali": d.tanggal_kembali || "",
+                    "Tgl Scan": d.tanggal_scan || "",
+                    "Tgl Filling": d.tanggal_filling || "",
+                    "Tgl Upload": d.tanggal_upload || "",
+                    "Keterangan": d.keterangan_upload || "",
+                }));
+
+                // Buat workbook & worksheet
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(rows);
+
+                // Set lebar kolom otomatis
+                const colWidths = [
+                    { wch: 4 },   // No
+                    { wch: 20 },  // ID PKWT
+                    { wch: 28 },  // Nama Karyawan
+                    { wch: 12 },  // NRK
+                    { wch: 22 },  // Client
+                    { wch: 16 },  // Jenis Surat
+                    { wch: 14 },  // Status PKWT
+                    { wch: 16 },  // Status Dokumen
+                    { wch: 14 },  // Tgl Kembali
+                    { wch: 14 },  // Tgl Scan
+                    { wch: 14 },  // Tgl Filling
+                    { wch: 14 },  // Tgl Upload
+                    { wch: 28 },  // Keterangan
+                ];
+                ws["!cols"] = colWidths;
+
+                XLSX.utils.book_append_sheet(wb, ws, "Data Kembali");
+
+                // Generate nama file dengan tanggal hari ini
+                const today = new Date();
+                const dd = String(today.getDate()).padStart(2, "0");
+                const mm = String(today.getMonth() + 1).padStart(2, "0");
+                const yyyy = today.getFullYear();
+                const fileName = `Filling_PKWT_TglKembali_${yyyy}${mm}${dd}.xlsx`;
+
+                XLSX.writeFile(wb, fileName);
+                showToast(`✅ ${filtered.length} data berhasil di-export ke ${fileName}`, "success");
+            } catch (err) {
+                toggleLoader(false);
+                showToast("Export gagal: " + err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
         // ── TEMPLATE & UPLOAD CSV ────────────────────────────────────────────────
 
         function downloadTemplate() {
@@ -960,122 +1041,6 @@
             for (let i = s; i <= e; i++) pag.innerHTML += li(i, i, i === currentPage, false);
             pag.innerHTML += li(currentPage + 1, "›", false, currentPage === totalPages);
             pag.innerHTML += li(totalPages, "»", false, currentPage === totalPages);
-        }
-
-        // ── EXPORT TO EXCEL ──────────────────────────────────────────────────────
-
-        /**
-         * Mengambil SEMUA data dari API (semua halaman) lalu mengekspornya ke file Excel (.xlsx).
-         * Menggunakan SheetJS (cdn.sheetjs.com) untuk generate file xlsx di browser.
-         */
-        async function exportToExcel() {
-            if (!currentIdToken) return showToast("Silakan login terlebih dahulu.", "error");
-
-            // UI: set loading state
-            const btn = document.getElementById("btnExportExcel");
-            const spinner = document.getElementById("exportSpinner");
-            const icon = document.getElementById("exportIcon");
-            const label = document.getElementById("exportLabel");
-            btn.disabled = true;
-            spinner.style.display = "inline-block";
-            icon.style.display = "none";
-            label.textContent = "Mengambil data...";
-
-            try {
-                let allData = [];
-                let offset = 0;
-                let total = null;
-
-                // Loop hingga semua data terambil (API default limit = 20/page)
-                do {
-                    label.textContent = `Mengambil data... (${allData.length})`;
-                    const res = await apiPost({ action: "getPkwtData", offset, search: "" });
-                    if (res.error) throw new Error(res.error);
-
-                    if (total === null) total = res.total;
-                    allData = allData.concat(res.data);
-                    offset += res.data.length;
-
-                    // Safety: jika data.length === 0 sebelum capai total, hentikan
-                    if (res.data.length === 0) break;
-                } while (allData.length < total);
-
-                if (allData.length === 0) {
-                    showToast("Tidak ada data untuk diekspor.", "error");
-                    return;
-                }
-
-                label.textContent = `Membuat file (${allData.length} baris)...`;
-
-                // ── Siapkan header & baris data ──
-                const headers = [
-                    "ID PKWT", "Nama Karyawan", "NRK", "Client",
-                    "Jenis Surat", "Status", "Status Dokumen",
-                    "Tgl Kembali", "Tgl Scan", "Tgl Filling", "Tgl Upload",
-                    "Keterangan Upload"
-                ];
-
-                const rows = allData.map(item => {
-                    let flowStatus = "BLM KEMBALI";
-                    if (item.tanggal_upload) flowStatus = "UPLOADED";
-                    else if (item.tanggal_filling) flowStatus = "FILLING";
-                    else if (item.tanggal_scan) flowStatus = "SCAN";
-                    else if (item.tanggal_kembali) flowStatus = "KEMBALI";
-                    return [
-                        item.id_pkwt || "",
-                        item.nama_karyawan || "",
-                        item.nrk || "",
-                        item.client || "",
-                        item.jenis_surat || "",
-                        item.status || "",
-                        flowStatus,
-                        item.tanggal_kembali || "",
-                        item.tanggal_scan || "",
-                        item.tanggal_filling || "",
-                        item.tanggal_upload || "",
-                        item.keterangan_upload || ""
-                    ];
-                });
-
-                // ── Buat workbook SheetJS ──
-                const wb = XLSX.utils.book_new();
-                const wsData = [headers, ...rows];
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-                // Atur lebar kolom otomatis berdasarkan konten
-                const colWidths = headers.map((h, i) => {
-                    const maxLen = Math.max(
-                        h.length,
-                        ...rows.map(r => String(r[i] || "").length)
-                    );
-                    return { wch: Math.min(maxLen + 2, 40) };
-                });
-                ws["!cols"] = colWidths;
-
-                // Auto filter & freeze header row
-                ws["!autofilter"] = { ref: `A1:L1` };
-                ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
-                XLSX.utils.book_append_sheet(wb, ws, "Data PKWT");
-
-                // ── Download file ──
-                const now = new Date();
-                const pad = n => String(n).padStart(2, "0");
-                const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
-                const filename = `DataPKWT_${ts}.xlsx`;
-                XLSX.writeFile(wb, filename);
-
-                showToast(`✅ Export berhasil! ${allData.length} baris → ${filename}`, "success");
-
-            } catch (err) {
-                showToast("Export gagal: " + err.message, "error");
-            } finally {
-                // Reset UI
-                btn.disabled = false;
-                spinner.style.display = "none";
-                icon.style.display = "";
-                label.textContent = "Export Excel";
-            }
         }
 
         // ── TOAST & LOADER ───────────────────────────────────────────────────────
