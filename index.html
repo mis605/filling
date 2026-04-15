@@ -894,48 +894,25 @@
 
         /**
          * Export semua data yang sudah memiliki tanggal_kembali ke file Excel.
-         * Loop semua halaman API (page size 20) sampai seluruh data terkumpul,
-         * lalu filter baris yang ada tanggal_kembali & export ke .xlsx.
+         * Cukup 1 request ke action exportKembaliData — backend BQ yang
+         * menangani query tanpa paginasi dan mengembalikan semua baris sekaligus.
          */
         async function exportToExcel() {
             const btn = document.getElementById("btnExport");
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Mengambil data...`;
             toggleLoader(true);
 
             try {
-                const PAGE_SIZE = 20;
-                let allData = [];
-                let offset = 0;
-                let total = null;
-
-                // ── Halaman pertama: dapatkan total keseluruhan data ──
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Halaman 1...`;
-                const firstRes = await apiPost({ action: "getPkwtData", offset: 0, search: "" });
-                if (firstRes.error) { showToast(firstRes.error, "error"); return; }
-
-                total = firstRes.total || 0;
-                allData = allData.concat(firstRes.data || []);
-                offset += PAGE_SIZE;
-
-                const totalPages = Math.ceil(total / PAGE_SIZE);
-
-                // ── Loop halaman berikutnya ──
-                while (offset < total) {
-                    const page = Math.floor(offset / PAGE_SIZE) + 1;
-                    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Halaman ${page}/${totalPages}...`;
-                    const res = await apiPost({ action: "getPkwtData", offset, search: "" });
-                    if (res.error) { showToast(res.error, "error"); return; }
-                    allData = allData.concat(res.data || []);
-                    offset += PAGE_SIZE;
-                }
-
+                // Satu request — backend query BQ tanpa LIMIT, filter tanggal_kembali IS NOT NULL
+                const res = await apiPost({ action: "exportKembaliData" });
                 toggleLoader(false);
 
-                // ── Filter hanya yang ada tanggal_kembali ──
-                const filtered = allData.filter(d => d.tanggal_kembali && d.tanggal_kembali.trim() !== "");
+                if (res.error) { showToast(res.error, "error"); return; }
 
-                if (filtered.length === 0) {
+                const data = res.data || [];
+                if (data.length === 0) {
                     showToast("Tidak ada data dengan Tanggal Kembali yang diisi.", "error");
                     return;
                 }
@@ -945,12 +922,11 @@
                     if (d.tanggal_upload) return "UPLOADED";
                     if (d.tanggal_filling) return "FILLING";
                     if (d.tanggal_scan) return "SCAN";
-                    if (d.tanggal_kembali) return "KEMBALI";
-                    return "BLM KEMBALI";
+                    return "KEMBALI";
                 };
 
                 // ── Susun array untuk worksheet ──
-                const rows = filtered.map((d, i) => ({
+                const rows = data.map((d, i) => ({
                     "No": i + 1,
                     "ID PKWT": d.id_pkwt || "",
                     "Nama Karyawan": d.nama_karyawan || "",
@@ -994,7 +970,7 @@
                 const fileName = `Filling_PKWT_TglKembali_${yyyy}${mm}${dd}.xlsx`;
 
                 XLSX.writeFile(wb, fileName);
-                showToast(`✅ ${filtered.length} data berhasil di-export ke ${fileName}`, "success");
+                showToast(`✅ ${data.length} data berhasil di-export ke ${fileName}`, "success");
             } catch (err) {
                 toggleLoader(false);
                 showToast("Export gagal: " + err.message, "error");
