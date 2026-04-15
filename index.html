@@ -894,25 +894,45 @@
 
         /**
          * Export semua data yang sudah memiliki tanggal_kembali ke file Excel.
-         * Mengambil seluruh data dari API (tanpa paginasi) lalu filter & export.
+         * Loop semua halaman API (page size 20) sampai seluruh data terkumpul,
+         * lalu filter baris yang ada tanggal_kembali & export ke .xlsx.
          */
         async function exportToExcel() {
             const btn = document.getElementById("btnExport");
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Mengambil data...`;
             toggleLoader(true);
+
             try {
-                // Ambil semua data sekaligus dengan limit besar (tidak ada filter search)
-                const res = await apiPost({ action: "getPkwtData", offset: 0, search: "", limit: 99999 });
-                toggleLoader(false);
-                if (res.error) {
-                    showToast(res.error, "error");
-                    return;
+                const PAGE_SIZE = 20;
+                let allData = [];
+                let offset = 0;
+                let total = null;
+
+                // ── Halaman pertama: dapatkan total keseluruhan data ──
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Halaman 1...`;
+                const firstRes = await apiPost({ action: "getPkwtData", offset: 0, search: "" });
+                if (firstRes.error) { showToast(firstRes.error, "error"); return; }
+
+                total = firstRes.total || 0;
+                allData = allData.concat(firstRes.data || []);
+                offset += PAGE_SIZE;
+
+                const totalPages = Math.ceil(total / PAGE_SIZE);
+
+                // ── Loop halaman berikutnya ──
+                while (offset < total) {
+                    const page = Math.floor(offset / PAGE_SIZE) + 1;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Halaman ${page}/${totalPages}...`;
+                    const res = await apiPost({ action: "getPkwtData", offset, search: "" });
+                    if (res.error) { showToast(res.error, "error"); return; }
+                    allData = allData.concat(res.data || []);
+                    offset += PAGE_SIZE;
                 }
 
-                // Filter hanya yang sudah ada tanggal_kembali
-                const allData = res.data || [];
+                toggleLoader(false);
+
+                // ── Filter hanya yang ada tanggal_kembali ──
                 const filtered = allData.filter(d => d.tanggal_kembali && d.tanggal_kembali.trim() !== "");
 
                 if (filtered.length === 0) {
@@ -920,7 +940,7 @@
                     return;
                 }
 
-                // Tentukan status flow tiap baris
+                // ── Tentukan status flow tiap baris ──
                 const getFlowStatus = d => {
                     if (d.tanggal_upload) return "UPLOADED";
                     if (d.tanggal_filling) return "FILLING";
@@ -929,7 +949,7 @@
                     return "BLM KEMBALI";
                 };
 
-                // Susun array untuk worksheet
+                // ── Susun array untuk worksheet ──
                 const rows = filtered.map((d, i) => ({
                     "No": i + 1,
                     "ID PKWT": d.id_pkwt || "",
@@ -946,12 +966,10 @@
                     "Keterangan": d.keterangan_upload || "",
                 }));
 
-                // Buat workbook & worksheet
+                // ── Buat workbook & worksheet ──
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.json_to_sheet(rows);
-
-                // Set lebar kolom otomatis
-                const colWidths = [
+                ws["!cols"] = [
                     { wch: 4 },   // No
                     { wch: 20 },  // ID PKWT
                     { wch: 28 },  // Nama Karyawan
@@ -966,11 +984,9 @@
                     { wch: 14 },  // Tgl Upload
                     { wch: 28 },  // Keterangan
                 ];
-                ws["!cols"] = colWidths;
-
                 XLSX.utils.book_append_sheet(wb, ws, "Data Kembali");
 
-                // Generate nama file dengan tanggal hari ini
+                // ── Nama file dengan tanggal hari ini ──
                 const today = new Date();
                 const dd = String(today.getDate()).padStart(2, "0");
                 const mm = String(today.getMonth() + 1).padStart(2, "0");
