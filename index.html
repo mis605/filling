@@ -1384,15 +1384,15 @@
   </div>
 </nav>
 <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbx7c42kFgg1qR8yAU9IcjqMo9CNvmuj67WsJ1VDBYx9dh0hZzC5QwzwEULesvHQtO8bmQ/exec"; // GANTI DENGAN URL WEB APP BARU
+        // KONFIGURASI: Ganti dengan URL Worker Cloudflare Anda
+        const API_URL = "https://pkwt-api.helpdesk-it-82e.workers.dev";
 
         async function callApi(action, params = {}) {
-            const url = new URL(API_URL);
-            url.searchParams.append("action", action);
-            for (const key in params) {
-                if (params[key]) url.searchParams.append(key, params[key]);
-            }
-            const response = await fetch(url.toString(), { redirect: "follow" });
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action, ...params }),
+            });
             const data = await response.json();
             if (data.error) throw new Error(data.error);
             return data;
