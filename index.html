@@ -940,6 +940,7 @@
 
         // ── EXPORT EXCEL (Data dengan Tanggal Kembali) ──────────────────────────
         async function exportToExcel() {
+            console.log("Tombol Export diklik!");
             const btn = document.getElementById("btnExport");
             const originalHTML = btn.innerHTML;
             btn.disabled = true;
@@ -947,7 +948,9 @@
             toggleLoader(true);
 
             try {
+                console.log("Memanggil API exportKembaliData...");
                 const res = await apiPost({ action: "exportKembaliData" });
+                console.log("Response API diterima:", res);
                 toggleLoader(false);
 
                 if (res.error) { showToast(res.error, "error"); return; }
