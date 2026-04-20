@@ -940,91 +940,75 @@
 
         // ── EXPORT EXCEL (Data dengan Tanggal Kembali) ──────────────────────────
         async function exportToExcel() {
-            console.log("Tombol Export diklik!");
+            console.log("[DEBUG] Tombol export diklik!");
             const btn = document.getElementById("btnExport");
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Mengambil data...`;
+            if (btn) btn.disabled = true;
             toggleLoader(true);
 
             try {
-                console.log("Memanggil API exportKembaliData...");
+                if (typeof XLSX === "undefined") {
+                    throw new Error("Library Excel (SheetJS) gagal dimuat oleh browser (mungkin terblokir jaringan/antivirus).");
+                }
+
+                console.log("[DEBUG] Memanggil API exportKembaliData...");
                 const res = await apiPost({ action: "exportKembaliData" });
-                console.log("Response API diterima:", res);
-                toggleLoader(false);
-
-                if (res.error) { showToast(res.error, "error"); return; }
-
-                const data = res.data || [];
-                if (data.length === 0) {
+                
+                if (res.error) throw new Error(res.error);
+                if (!res.data || res.data.length === 0) {
                     showToast("Tidak ada data dengan Tanggal Kembali yang diisi.", "error");
                     return;
                 }
 
-                // Tentukan status flow tiap baris
-                const getFlowStatus = d => {
-                    if (d.tanggal_upload)  return "UPLOADED";
-                    if (d.tanggal_filling) return "FILLING";
-                    if (d.tanggal_scan)    return "SCAN";
-                    return "KEMBALI";
-                };
+                console.log(`[DEBUG] Menerima ${res.data.length} baris data, menyiapkan file Excel...`);
 
-                // Susun array untuk worksheet
-                const rows = data.map((d, i) => ({
-                    "No":               i + 1,
-                    "ID PKWT":          d.id_pkwt          || "",
-                    "Nama Karyawan":    d.nama_karyawan     || "",
-                    "NRK":              d.nrk               || "",
-                    "Client / Project": d.client            || "",
-                    "Jenis Surat":      d.jenis_surat       || "",
-                    "Status PKWT":      d.status            || "",
-                    "Awal Kontrak":     d.awal_kontrak      || "",
-                    "Akhir Kontrak":    d.akhir_kontrak     || "",
-                    "Status Dokumen":   getFlowStatus(d),
-                    "Tgl Kembali":      d.tanggal_kembali   || "",
-                    "Tgl Scan":         d.tanggal_scan      || "",
-                    "Tgl Filling":      d.tanggal_filling   || "",
-                    "Tgl Upload":       d.tanggal_upload    || "",
-                    "Keterangan":       d.keterangan_upload || "",
-                }));
+                // Filter manual fallback di FE (berjaga-jaga)
+                const data = res.data.filter(d => Boolean(d.tanggal_kembali));
 
-                // Buat workbook & worksheet
-                const wb = XLSX.utils.book_new();
+                // Mapping format kolom rapi
+                const rows = data.map((d, i) => {
+                    let st = "KEMBALI";
+                    if (d.tanggal_upload) st = "UPLOADED";
+                    else if (d.tanggal_filling) st = "FILLING";
+                    else if (d.tanggal_scan) st = "SCAN";
+
+                    return {
+                        "No": i + 1,
+                        "ID PKWT": d.id_pkwt || "",
+                        "Nama Karyawan": d.nama_karyawan || "",
+                        "NRK": d.nrk || "",
+                        "Client / Project": d.client || "",
+                        "Jenis Surat": d.jenis_surat || "",
+                        "Status PKWT": d.status || "",
+                        "Awal Kontrak": d.awal_kontrak || "",
+                        "Akhir Kontrak": d.akhir_kontrak || "",
+                        "Status Dokumen": st,
+                        "Tgl Kembali": d.tanggal_kembali || "",
+                        "Tgl Scan": d.tanggal_scan || "",
+                        "Tgl Filling": d.tanggal_filling || "",
+                        "Tgl Upload": d.tanggal_upload || "",
+                        "Keterangan": d.keterangan_upload || ""
+                    };
+                });
+
                 const ws = XLSX.utils.json_to_sheet(rows);
-                ws["!cols"] = [
-                    { wch: 4  }, // No
-                    { wch: 20 }, // ID PKWT
-                    { wch: 28 }, // Nama Karyawan
-                    { wch: 12 }, // NRK
-                    { wch: 22 }, // Client
-                    { wch: 16 }, // Jenis Surat
-                    { wch: 14 }, // Status PKWT
-                    { wch: 14 }, // Awal Kontrak
-                    { wch: 14 }, // Akhir Kontrak
-                    { wch: 16 }, // Status Dokumen
-                    { wch: 14 }, // Tgl Kembali
-                    { wch: 14 }, // Tgl Scan
-                    { wch: 14 }, // Tgl Filling
-                    { wch: 14 }, // Tgl Upload
-                    { wch: 28 }, // Keterangan
-                ];
+                const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Data Kembali");
+                
+                // Lebar kolom
+                ws["!cols"] = [{ wch: 4 }, { wch: 20 }, { wch: 28 }, { wch: 12 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 28 }];
 
-                // Nama file dengan tanggal hari ini
-                const today = new Date();
-                const dd   = String(today.getDate()).padStart(2, "0");
-                const mm   = String(today.getMonth() + 1).padStart(2, "0");
-                const yyyy = today.getFullYear();
-                const fileName = `Filling_PKWT_TglKembali_${yyyy}${mm}${dd}.xlsx`;
+                // Generate dan Download File
+                const ts = new Date().getTime();
+                XLSX.writeFile(wb, `PKWT_Kembali_${ts}.xlsx`);
+                console.log("[DEBUG] Berhasil men-download file Excel.");
+                showToast(`✅ Export ${data.length} baris selesai.`, "success");
 
-                XLSX.writeFile(wb, fileName);
-                showToast(`✅ ${data.length} data berhasil di-export ke ${fileName}`, "success");
             } catch (err) {
-                toggleLoader(false);
-                showToast("Export gagal: " + err.message, "error");
+                console.error("[DEBUG] Export Gagal:", err);
+                showToast("Gagal export: " + err.message, "error");
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
+                if (btn) btn.disabled = false;
+                toggleLoader(false);
             }
         }
 
